@@ -54,58 +54,56 @@ class Transaksi extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['pasien_id', 'total_harga'], 'required'],
-            [['pasien_id', 'total_harga'], 'integer'],
+            [['pasien_id'], 'required'],
+            [['pasien_id'], 'integer'],
             [['created_at', 'updated_at'], 'safe'],
             [['jumlah_obat'], 'safe'],
             [['pasien_id'], 'exist', 'skipOnError' => true, 'targetClass' => Pasien::class, 'targetAttribute' => ['pasien_id' => 'id']],
         ];
     }
 
-    public function beforeSave($insert)
-    {
-        if (parent::beforeSave($insert)) {
-            // Hitung total harga obat
-            $totalHargaObat = 0;
-            foreach ($this->detailTransaksiObat as $detailObat) {
-                $totalHargaObat += $detailObat->obat->harga * $detailObat->jumlah;
-            }
-
-            // Hitung total harga transaksi
-            $totalHargaTransaksi = $this->total_harga;
-
-            // Hitung total harga
-            $this->total_harga = $totalHargaTransaksi + $totalHargaObat;
-
-            // Simpan data transaksi
-            if ($this->isNewRecord) {
-                // Jika record baru, simpan transaksi
-                if (!$this->save()) {
-                    return false;
-                }
-            } else {
-                // Jika record lama, update transaksi
-                if (!$this->update()) {
-                    return false;
+public function beforeSave($insert)
+{
+    if (parent::beforeSave($insert)) {
+        $totalTindakan = 0;
+        if (!empty($this->tindakanIds)) {
+            foreach ($this->tindakanIds as $tindakanId) {
+                $tindakan = Tindakan::findOne($tindakanId);
+                if ($tindakan) {
+                    $totalTindakan += $tindakan->harga;
                 }
             }
-
-            // Simpan tindakan
-            $tindakanIds = $this->tindakan;
-            if (!empty($tindakanIds)) {
-                $tindakanTransaksi = [];
-                foreach ($tindakanIds as $tindakanId) {
-                    $tindakanTransaksi[] = [$this->id, $tindakanId];
-                }
-                Yii::$app->db->createCommand()
-                    ->batchInsert('transaksi_tindakan', ['transaksi_id', 'tindakan_id'], $tindakanTransaksi)
-                    ->execute();
-            }
-
-            return true;
         }
-        return false;
+
+        $totalObat = 0;
+        if ($this->obat1_id) {
+            $obat = Obat::findOne($this->obat1_id);
+            if ($obat) {
+                $totalObat += $obat->harga * (int)$this->jumlah_obat1;
+            }
+        }
+        if ($this->obat2_id) {
+            $obat = Obat::findOne($this->obat2_id);
+            if ($obat) {
+                $totalObat += $obat->harga * (int)$this->jumlah_obat2;
+            }
+        }
+        if ($this->obat3_id) {
+            $obat = Obat::findOne($this->obat3_id);
+            if ($obat) {
+                $totalObat += $obat->harga * (int)$this->jumlah_obat3;
+            }
+        }
+
+        $this->total_harga = $totalTindakan + $totalObat;
+
+        return true;
     }
+    return false;
+}
+
+
+
 
 
 

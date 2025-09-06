@@ -22,50 +22,64 @@ class Transaksi extends \yii\db\ActiveRecord
     public $obat1_id;
     public $obat2_id;
     public $obat3_id;
-    public $jumlah1;
-    public $jumlah2;
-    public $jumlah3;
+    public $jumlah_obat1;
+    public $jumlah_obat2;
+    public $jumlah_obat3;
     public $tindakanPrices = [];
     public $obatPrices;
 
     /**
      * {@inheritdoc}
      */
+    public function init()
+    {
+        parent::init();
+        $this->obatPrices = \yii\helpers\ArrayHelper::map(\app\models\Obat::find()->all(), 'id', 'harga');
+        $this->tindakanPrices = \yii\helpers\ArrayHelper::map(\app\models\Tindakan::find()->all(), 'id', 'harga');
+    }
+
     public function afterSave($insert, $changedAttributes)
     {
         parent::afterSave($insert, $changedAttributes);
 
         if ($insert) {
+            // simpan tindakan
             foreach ($this->tindakanIds as $tindakanId) {
                 $transaksiTindakan = new TransaksiTindakan();
                 $transaksiTindakan->transaksi_id = $this->id;
                 $transaksiTindakan->tindakan_id = $tindakanId;
                 $transaksiTindakan->save();
             }
-        }
-        if ($insert) { // hanya dijalankan jika data baru disimpan
-            // menyimpan data transaksi obat
-            $transaksiObat = new TransaksiObat();
-            $transaksiObat->transaksi_id = $this->id;
-            $transaksiObat->obat_id = $this->obat1_id;
-            $transaksiObat->jumlah = $this->jumlah1;
-            $transaksiObat->save();
 
-            // menyimpan data transaksi obat
-            $transaksiObat = new TransaksiObat();
-            $transaksiObat->transaksi_id = $this->id;
-            $transaksiObat->obat_id = $this->obat2_id;
-            $transaksiObat->jumlah = $this->jumlah2;
-            $transaksiObat->save();
+            // simpan obat 1
+            if ($this->obat1_id) {
+                $transaksiObat = new TransaksiObat();
+                $transaksiObat->transaksi_id = $this->id;
+                $transaksiObat->obat_id = $this->obat1_id;
+                $transaksiObat->jumlah = $this->jumlah_obat1;
+                $transaksiObat->save();
+            }
 
-            // menyimpan data transaksi obat
-            $transaksiObat = new TransaksiObat();
-            $transaksiObat->transaksi_id = $this->id;
-            $transaksiObat->obat_id = $this->obat3_id;
-            $transaksiObat->jumlah = $this->jumlah3;
-            $transaksiObat->save();
+            // simpan obat 2
+            if ($this->obat2_id) {
+                $transaksiObat = new TransaksiObat();
+                $transaksiObat->transaksi_id = $this->id;
+                $transaksiObat->obat_id = $this->obat2_id;
+                $transaksiObat->jumlah = $this->jumlah_obat2;
+                $transaksiObat->save();
+            }
+
+            // simpan obat 3
+            if ($this->obat3_id) {
+                $transaksiObat = new TransaksiObat();
+                $transaksiObat->transaksi_id = $this->id;
+                $transaksiObat->obat_id = $this->obat3_id;
+                $transaksiObat->jumlah = $this->jumlah_obat3;
+                $transaksiObat->save();
+            }
         }
     }
+
     public static function tableName()
     {
         return 'transaksi';
@@ -80,7 +94,7 @@ class Transaksi extends \yii\db\ActiveRecord
             [['pasien_id'], 'required'],
             [['pasien_id', 'total_harga'], 'integer'],
             [['tanggal_transaksi'], 'default', 'value' => date('Y-m-d')],
-            [['obat1_id', 'obat2_id', 'obat3_id'], 'integer'],
+            [['obat1_id', 'obat2_id', 'obat3_id', 'jumlah_obat1', 'jumlah_obat2', 'jumlah_obat3'], 'integer'],
             [['tindakanIds'], 'required', 'message' => 'Pilih minimal satu tindakan.'],
             [['pasien_id'], 'exist', 'skipOnError' => true, 'targetClass' => Pasien::class, 'targetAttribute' => ['pasien_id' => 'id']],
         ];
@@ -108,18 +122,17 @@ class Transaksi extends \yii\db\ActiveRecord
     {
         return $this->hasOne(Pasien::class, ['id' => 'pasien_id']);
     }
+
     public function getObat1()
     {
         return $this->hasOne(Obat::className(), ['id' => 'obat1_id']);
     }
 
-    // definisikan relasi obat2 pada model Transaksi
     public function getObat2()
     {
         return $this->hasOne(Obat::className(), ['id' => 'obat2_id']);
     }
 
-    // definisikan relasi obat3 pada model Transaksi
     public function getObat3()
     {
         return $this->hasOne(Obat::className(), ['id' => 'obat3_id']);
@@ -164,29 +177,16 @@ class Transaksi extends \yii\db\ActiveRecord
         return $total;
     }
 
-
-
-    // ...
-
-
-    /**
-     * Gets query for [[TransaksiObats]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
-    /**
-     * Gets query for [[TransaksiTindakans]].
-     *
-     * @return \yii\db\ActiveQuery
-     */
     public function getTransaksiTindakans()
     {
         return $this->hasMany(TransaksiTindakan::class, ['transaksi_id' => 'id']);
     }
+
     public function getTransaksiObats()
     {
         return $this->hasMany(TransaksiObat::class, ['transaksi_id' => 'id']);
     }
+
     public function getObat()
     {
         return $this->hasOne(Obat::class, ['id' => 'obat_id']);

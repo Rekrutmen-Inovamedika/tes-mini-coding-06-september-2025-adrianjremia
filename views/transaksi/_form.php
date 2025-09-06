@@ -18,12 +18,15 @@ use yii\helpers\ArrayHelper;
         ['prompt' => 'Pilih Pasien']
     ) ?>
     <?= $form->field($model, 'tindakanIds')->checkboxList(ArrayHelper::map(\app\models\Tindakan::find()->all(), 'id', 'nama_tindakan')) ?>
-    <?= $form->field($model, 'obat1_id')->dropDownList(\app\models\Obat::getList(), ['prompt' => 'Pilih Obat 1', 'data-harga' => '']) ?>
+    <?= $form->field($model, 'obat1_id')->dropDownList(\app\models\Obat::getList(), ['prompt' => 'Pilih Obat 1']) ?>
+    <?= $form->field($model, 'jumlah_obat1')->textInput(['type' => 'number', 'min' => 1, 'value' => 1]) ?>
 
-    <?= $form->field($model, 'obat2_id')->dropDownList(\app\models\Obat::getList(), ['prompt' => 'Pilih Obat 2', 'data-harga' => '']) ?>
+    <?= $form->field($model, 'obat2_id')->dropDownList(\app\models\Obat::getList(), ['prompt' => 'Pilih Obat 2']) ?>
+    <?= $form->field($model, 'jumlah_obat2')->textInput(['type' => 'number', 'min' => 1, 'value' => 1]) ?>
 
-    <?= $form->field($model, 'obat3_id')->dropDownList(\app\models\Obat::getList(), ['prompt' => 'Pilih Obat 3', 'data-harga' => '']) ?>
-    <?= $form->field($model, 'total_harga')->textInput() ?>
+    <?= $form->field($model, 'obat3_id')->dropDownList(\app\models\Obat::getList(), ['prompt' => 'Pilih Obat 3']) ?>
+    <?= $form->field($model, 'jumlah_obat3')->textInput(['type' => 'number', 'min' => 1, 'value' => 1]) ?>
+
     <?= $form->field($model, 'total_harga')->textInput(['readonly' => true]) ?>
 
     <div class="form-group">
@@ -35,38 +38,43 @@ use yii\helpers\ArrayHelper;
 </div>
 <?php
 
-$this->registerJs('
-    var tindakanPrice = ' . json_encode($model->tindakanPrices) . ';
-    var obatPrice = ' . json_encode($model->obatPrices) . ';
-    var totalPriceField = $("#' . Html::getInputId($model, 'total_harga') . '");
+$this->registerJs("
+    var tindakanPrice = " . json_encode($model->tindakanPrices) . ";
+    var obatPrice = " . json_encode($model->obatPrices) . ";
+    var totalPriceField = $('#" . Html::getInputId($model, 'total_harga') . "');
 
     function updateTotalPrice() {
         var tindakanTotal = 0;
-        $("input[name=\'Transaksi[tindakanIds][]\']:checked").each(function() {
-            var tindakanId = $(this).val();
+        $('input[name=\"Transaksi[tindakanIds][]\"]:checked').each(function() {
+            var tindakanId = parseInt($(this).val());
             if (tindakanPrice.hasOwnProperty(tindakanId)) {
-                tindakanTotal += tindakanPrice[tindakanId];
+                tindakanTotal += Number(tindakanPrice[tindakanId]);
             }
         });
         
         var obatTotal = 0;
-        var obat1Price = obatPrice[$("#transaksi-obat1_id").val()] || 0;
-        obatTotal += obat1Price * $("#transaksi-jumlah_obat1").val();
-        var obat2Price = obatPrice[$("#transaksi-obat2_id").val()] || 0;
-        obatTotal += obat2Price * $("#transaksi-jumlah_obat2").val();
-        var obat3Price = obatPrice[$("#transaksi-obat3_id").val()] || 0;
-        obatTotal += obat3Price * $("#transaksi-jumlah_obat3").val();
-        
+
+        var obat1Price = Number(obatPrice[$('#transaksi-obat1_id').val()] || 0);
+        var jumlah1 = parseInt($('#transaksi-jumlah_obat1').val()) || 0;
+        obatTotal += obat1Price * jumlah1;
+
+        var obat2Price = Number(obatPrice[$('#transaksi-obat2_id').val()] || 0);
+        var jumlah2 = parseInt($('#transaksi-jumlah_obat2').val()) || 0;
+        obatTotal += obat2Price * jumlah2;
+
+        var obat3Price = Number(obatPrice[$('#transaksi-obat3_id').val()] || 0);
+        var jumlah3 = parseInt($('#transaksi-jumlah_obat3').val()) || 0;
+        obatTotal += obat3Price * jumlah3;
+
         var totalPrice = tindakanTotal + obatTotal;
         totalPriceField.val(totalPrice);
     }
 
-    $("input[name=\'Transaksi[tindakanIds][]\']").change(updateTotalPrice);
-    $("#transaksi-obat1_id").change(updateTotalPrice);
-    $("#transaksi-jumlah_obat1").change(updateTotalPrice);
-    $("#transaksi-obat2_id").change(updateTotalPrice);
-    $("#transaksi-jumlah_obat2").change(updateTotalPrice);
-    $("#transaksi-obat3_id").change(updateTotalPrice);
-    $("#transaksi-jumlah_obat3").change(updateTotalPrice);
-    updateTotalPrice();');
+    $('input[name=\"Transaksi[tindakanIds][]\"]').change(updateTotalPrice);
+    $('#transaksi-obat1_id, #transaksi-jumlah_obat1').change(updateTotalPrice);
+    $('#transaksi-obat2_id, #transaksi-jumlah_obat2').change(updateTotalPrice);
+    $('#transaksi-obat3_id, #transaksi-jumlah_obat3').change(updateTotalPrice);
+    updateTotalPrice();
+");
+
 ?>
